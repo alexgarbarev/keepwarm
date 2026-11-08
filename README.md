@@ -37,7 +37,21 @@ My (unverified) interpretation: when few frames are being presented on the prima
   - **Off**: never active.
   - **Auto** (default): pauses itself when GPU utilization stays above a threshold (default 60%) for 3 seconds, resumes when it stays below for 2 seconds. Under heavy GPU load (rendering, local LLM inference, etc.) the workaround is assumed to be unnecessary.
 
-The selected mode is remembered between launches. The extra cost should be tiny (one 4×4 px layer update per frame); measure it with `powermetrics` if you care.
+The selected mode is remembered between launches. The workaround is not free, see [Overhead](#overhead).
+
+## Overhead
+
+Measured by the author on an M5 Max at 45 fps (Activity Monitor percentages are relative to one core, so 100% = one full core):
+
+| Metric | Value |
+|--------|-------|
+| keepwarm process CPU | ~1.5-2.3% |
+| keepwarm memory | ~20 MB |
+| `WindowServer` CPU, keepwarm on | ~17-25% |
+| `WindowServer` CPU, keepwarm off | ~5% |
+| GPU (`powermetrics`) | ~5-8% active, ~18-44 mW, stays at the lowest frequency |
+
+Most of the cost lands on `WindowServer`, not on the keepwarm process itself, and Activity Monitor shows 0% GPU for keepwarm because the compositing work is attributed to `WindowServer`. Auto mode removes the cost while the GPU is busy; a lower `--fps` reduces it (the lowest value that still helps hasn't been determined; 30 fps did not help, 45 did).
 
 ## Requirements
 
